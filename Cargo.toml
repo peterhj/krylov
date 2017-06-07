@@ -9,6 +9,6 @@ path = "src/lib.rs"
 
 [dependencies]
 rand = "*"
-arraydiff = { path = "../arraydiff" }
+#arraydiff = { path = "../arraydiff" }
 densearray = "*"
 float = "*"

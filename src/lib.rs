@@ -1,11 +1,11 @@
-extern crate arraydiff;
+//extern crate arraydiff;
 extern crate densearray;
 extern crate float;
 
 extern crate rand;
 
-use arraydiff::prelude::*;
-use arraydiff::ops::*;
+//use arraydiff::prelude::*;
+//use arraydiff::ops::*;
 use densearray::prelude::*;
 use float::ord::*;
 
