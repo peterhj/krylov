@@ -1,5 +1,6 @@
 //extern crate arraydiff;
 extern crate densearray;
+extern crate devicemem_cuda;
 extern crate float;
 
 extern crate rand;
@@ -7,6 +8,7 @@ extern crate rand;
 //use arraydiff::prelude::*;
 //use arraydiff::ops::*;
 use densearray::prelude::*;
+use devicemem_cuda::prelude::*;
 use float::ord::*;
 
 use rand::*;
@@ -162,3 +164,20 @@ impl ConjugateGradientSolver32 {
     }
   }
 }
+
+pub struct GPUConjugateGradientSolver32 {
+  cfg:      ConjugateGradientConfig,
+  b:        DeviceArray1d<f32>,
+  b_norm:   f32,
+  x:        DeviceArray1d<f32>,
+  x_norm:   f32,
+  r:        DeviceArray1d<f32>,
+  r_norm:   f32,
+  r_prev_norm:  f32,
+  p_in:     DeviceMem<f32>,
+  p:        DeviceArray1d<f32>,
+  w_out:    DeviceMem<f32>,
+  w:        DeviceArray1d<f32>,
+}
+
+// TODO
