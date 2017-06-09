@@ -114,7 +114,8 @@ pub struct ConjugateGradientConfig {
 
 pub struct ConjugateGradientSolver32 {
   cfg:      ConjugateGradientConfig,
-  b:        Array1d<f32>,
+  //b:        Array1d<f32>,
+  b:        Vec<f32>,
   b_norm:   f32,
   x:        Array1d<f32>,
   x_norm:   f32,
@@ -128,13 +129,14 @@ pub struct ConjugateGradientSolver32 {
 }
 
 impl ConjugateGradientSolver32 {
-  pub fn solve<F>(&mut self, b: &[f32], linear_fn: F) where F: Fn(&mut Vec<f32>, &mut Vec<f32>) {
-    assert_eq!(self.cfg.dim, b.len());
-    self.b.as_view_mut().copy(b.reshape(self.cfg.dim));
-    self.b_norm = self.b.as_view().l2_norm();
+  pub fn solve<B, F>(&mut self, b_fn: B, mut linear_fn: F) where B: FnOnce(&mut Vec<f32>), F: FnMut(&mut Vec<f32>, &mut Vec<f32>) {
+    //assert_eq!(self.cfg.dim, b.len());
+    //self.b.as_view_mut().copy(b.reshape(self.cfg.dim));
+    b_fn(&mut self.b);
+    self.b_norm = self.b.flatten().l2_norm();
     self.x.as_view_mut().set_constant(0.0);
     self.x_norm = self.x.as_view().l2_norm();
-    self.r.as_view_mut().copy(self.b.as_view());
+    self.r.as_view_mut().copy(self.b.flatten());
     self.r_norm = self.r.as_view().l2_norm();
     println!("DEBUG: cg32: iter: {} |x|: {:.6} |r|: {:.6} |b|: {:.6}", 0, self.x_norm, self.r_norm, self.b_norm);
     for iter_nr in 0 .. self.cfg.max_iters {
