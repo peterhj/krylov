@@ -109,7 +109,7 @@ impl LanczosEigensolver {
 pub struct ConjugateGradientConfig {
   pub max_iters:    usize,
   pub dim:          usize,
-  pub dampener:     Option<f64>,
+  pub damping:      Option<f64>,
 }
 
 pub struct ConjugateGradientSolver32 {
@@ -117,7 +117,7 @@ pub struct ConjugateGradientSolver32 {
   //b:        Array1d<f32>,
   b:        Vec<f32>,
   b_norm:   f32,
-  x:        Array1d<f32>,
+  x:        Vec<f32>,
   x_norm:   f32,
   r:        Array1d<f32>,
   r_norm:   f32,
@@ -129,13 +129,16 @@ pub struct ConjugateGradientSolver32 {
 }
 
 impl ConjugateGradientSolver32 {
-  pub fn solve<B, F>(&mut self, b_fn: B, mut linear_fn: F) where B: FnOnce(&mut Vec<f32>), F: FnMut(&mut Vec<f32>, &mut Vec<f32>) {
-    //assert_eq!(self.cfg.dim, b.len());
-    //self.b.as_view_mut().copy(b.reshape(self.cfg.dim));
+  pub fn load_rhs<F>(&mut self, b_fn: F) where F: FnOnce(&mut Vec<f32>) {
     b_fn(&mut self.b);
     self.b_norm = self.b.flatten().l2_norm();
-    self.x.as_view_mut().set_constant(0.0);
-    self.x_norm = self.x.as_view().l2_norm();
+  }
+
+  pub fn solve<F>(&mut self, mut linear_fn: F) where F: FnMut(&mut Vec<f32>, &mut Vec<f32>) {
+    //assert_eq!(self.cfg.dim, b.len());
+    //self.b.as_view_mut().copy(b.reshape(self.cfg.dim));
+    self.x.flatten_mut().set_constant(0.0);
+    self.x_norm = self.x.flatten().l2_norm();
     self.r.as_view_mut().copy(self.b.flatten());
     self.r_norm = self.r.as_view().l2_norm();
     println!("DEBUG: cg32: iter: {} |x|: {:.6} |r|: {:.6} |b|: {:.6}", 0, self.x_norm, self.r_norm, self.b_norm);
@@ -149,21 +152,25 @@ impl ConjugateGradientSolver32 {
       self.p_in.reshape_mut(self.cfg.dim).copy(self.p.as_view());
       linear_fn(&mut self.p_in, &mut self.w_out);
       self.w.as_view_mut().copy(self.w_out.reshape(self.cfg.dim));
-      if let Some(dampener) = self.cfg.dampener {
-        self.w.as_view_mut().add(dampener as _, self.p.as_view());
+      if let Some(damping) = self.cfg.damping {
+        self.w.as_view_mut().add(damping as _, self.p.as_view());
       }
       let p_dot_w = self.p.as_view().inner_prod(1.0, self.w.as_view());
       if p_dot_w < 0.0 {
         println!("WARNING: cg32: p.w is negative, cg will probably fail");
       }
       let alpha = self.r_norm * self.r_norm / p_dot_w;
-      self.x.as_view_mut().add(alpha, self.p.as_view());
-      self.x_norm = self.x.as_view().l2_norm();
+      self.x.flatten_mut().add(alpha, self.p.as_view());
+      self.x_norm = self.x.flatten().l2_norm();
       self.r.as_view_mut().add(-alpha, self.w.as_view());
       self.r_prev_norm = self.r_norm;
       self.r_norm = self.r.as_view().l2_norm();
       println!("DEBUG: cg32: iter: {} |x|: {:.6} |r|: {:.6}", iter_nr + 1, self.x_norm, self.r_norm);
     }
+  }
+
+  pub fn store_solution<F>(&mut self, x_fn: F) where F: FnOnce(&mut Vec<f32>) {
+    x_fn(&mut self.x);
   }
 }
 
